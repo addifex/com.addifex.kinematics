@@ -1,0 +1,8 @@
+{
+  "name": "com.addifex.kinematics",
+  "version": "0.0.1",
+  "displayName": "Addifex Kinematics",
+  "description": "Provides systems for character controllers and kinematic bodies.",
+  "unity": "6000.0",
+  "author": "Maxwell Schaefer"
+}
