@@ -1,6 +1,6 @@
 {
     "name": "addifex.kinematics",
-    "rootNamespace": "",
+    "rootNamespace": "Addifex.Kinematics",
     "references": [],
     "includePlatforms": [],
     "excludePlatforms": [],
