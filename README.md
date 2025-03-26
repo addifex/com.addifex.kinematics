@@ -7,6 +7,14 @@ provide much for kinematic functionality. This package aims to provide a set of 
 would need anywhere from character controls to puzzle interactions. Beyond that, the code is meant to be written in a manner that decouples logic from
 MonoBehaviors, as to allow high re-use of kinematic logic in custom components.
 
+## Installation
+To add package to Unity project:
+1. Open Package Manager window
+2. Click the "+" icon in top left corner
+3. Select "Install package from git URL..."
+4. Copy and Paste: https://github.com/addifex/com.addifex.kinematics.git
+5. Click "Install"
+
 ## Known Bugs
 
 ### (#001) Jitter on low objects.
