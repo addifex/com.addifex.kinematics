@@ -46,19 +46,15 @@ namespace Addifex.Kinematics
             {
                 velocity += depenetration.normalized;
             }
-
-            velocity *= speed * Time.deltaTime;
         
-            bool foundGround = IsGrounded(transform.position, out RaycastHit groundHit);
-        
-            float angle = Vector3.Angle(Vector3.up, groundHit.normal);
-
-            if (foundGround)
-            {
-                if(angle <= maxSlopeAngle)
-                    velocity = Vector3.ProjectOnPlane(velocity, groundHit.normal);
-            }
-            else
+            bool foundGround = IsGrounded(transform.position, out Vector3 groundNormal);
+            
+            velocity += Vector3.ProjectOnPlane(inputDirection, groundNormal);
+            
+            velocity = Vector3.ClampMagnitude(velocity, speed * Time.deltaTime);
+            
+            float angle = Vector3.Angle(Vector3.up, groundNormal);
+            if(!foundGround || angle > maxSlopeAngle)
             {
                 velocity += Physics.gravity * Time.deltaTime;
             }
@@ -110,24 +106,22 @@ namespace Addifex.Kinematics
             return newPosition;
         }
     
-        private bool IsGrounded(Vector3 position, out RaycastHit ground)
+        private bool IsGrounded(Vector3 position, out Vector3 normal)
         {
             Vector3 castOrigin = position + new Vector3(0, CastRadius());
             float distance = skinWidth;
 
             int count = Physics.SphereCastNonAlloc(castOrigin, CastRadius(), Vector3.down, collisions, distance, collide, QueryTriggerInteraction.Ignore);
-
-            ground = new()
-            {
-                distance = float.NegativeInfinity,
-                normal = Vector3.up
-            };
+            
+            normal = Vector3.zero;
         
             for (int i = 0; i < count; i++)
             {
-                if(collisions[i].distance > ground.distance)
-                    ground = collisions[i];
+                if(!Functions.IsOverlapping(collisions[i]))
+                    normal += collisions[i].normal;
             }
+            
+            normal.Normalize();
         
             return count > 0;
         }
