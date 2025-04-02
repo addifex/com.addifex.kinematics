@@ -32,11 +32,6 @@ namespace Addifex.Kinematics
             height = collider.height;
         }
 
-        private void Start()
-        {
-            CheckForOverlaps();
-        }
-
         private void CheckForOverlaps()
         {
             (Vector3 bottom, Vector3 top) = Functions.CreateCapsuleCastPoints(transform.position, radius, height);
@@ -50,6 +45,8 @@ namespace Addifex.Kinematics
 
         private void Update()
         {
+            CheckForOverlaps();
+            
             Vector3 input = GetMoveInput();
             Vector3 direction = transform.TransformDirection(input).normalized;
             Vector3 movement = direction * (speed * Time.deltaTime);
@@ -75,24 +72,41 @@ namespace Addifex.Kinematics
             if (hitCount == 0)
                 return position + direction;
 
-            RaycastHit closestHit = new()
+            if (hitCount == 1)
             {
-                distance = float.PositiveInfinity,
-            };
-        
-            for (int i = 0; i < hitCount; i++)
-            {
-                if(collisions[i].distance < closestHit.distance)
-                    closestHit = collisions[i];
+                Vector3 projection = Vector3.ProjectOnPlane(direction, collisions[0].normal);
+                return position + projection;
             }
+            if (hitCount == 2)
+            {
+                Vector3 point0 = collisions[0].point;
+                Vector3 point1 = collisions[1].point;
+                
+                Vector3 plane = point0 - point1;
+                
+                Vector3 normal = Vector3.Cross(plane, Vector3.up);
+                Vector3 projection = Vector3.ProjectOnPlane(direction, normal);
+                
+                return position + projection;
+            }
+            else
+            {
+                RaycastHit closestHit = new()
+                {
+                    distance = float.PositiveInfinity,
+                };
         
-            if(closestHit.distance == 0 && closestHit.point == Vector3.zero)
-                return ResolveOverlap(closestHit.collider, position + direction);
+                for (int i = 0; i < hitCount; i++)
+                {
+                    if(collisions[i].distance < closestHit.distance)
+                        closestHit = collisions[i];
+                }
 
-            Vector3 projection = Vector3.ProjectOnPlane(direction, closestHit.normal);
-            Vector3 newPosition = position + projection;
+                Vector3 projection = Vector3.ProjectOnPlane(direction, closestHit.normal);
+                Vector3 newPosition = position + projection;
         
-            return newPosition;
+                return newPosition;
+            }
         }
     
         private bool IsGrounded(Vector3 position, out RaycastHit ground)
