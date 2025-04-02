@@ -32,17 +32,6 @@ namespace Addifex.Kinematics
             height = collider.height;
         }
 
-        private void CheckForOverlaps()
-        {
-            (Vector3 bottom, Vector3 top) = Functions.CreateCapsuleCastPoints(transform.position, radius, height);
-            int overlapCount = Physics.OverlapCapsuleNonAlloc(bottom, top, radius, overlaps, collide);
-
-            for (int i = 0; i < overlapCount; i++)
-            {
-                transform.position = ResolveOverlap(overlaps[i], transform.position);
-            }
-        }
-
         private void Update()
         {
             CheckForOverlaps();
@@ -62,32 +51,85 @@ namespace Addifex.Kinematics
         
             transform.position = Move(transform.position, velocity);
         }
+        
+        private void CheckForOverlaps()
+        {
+            (Vector3 bottom, Vector3 top) = Functions.CreateCapsuleCastPoints(transform.position, radius, height);
+            int overlapCount = Physics.OverlapCapsuleNonAlloc(bottom, top, radius, overlaps, collide);
+
+            if(overlapCount > 0)
+                Debug.Log(overlapCount);
+            
+            for (int i = 0; i < overlapCount; i++)
+            {
+                transform.position = ResolveOverlap(overlaps[i], transform.position);
+            }
+        }
+        
+        private Vector3 ResolveOverlap(Collider overlap, Vector3 position)
+        {
+            bool didPenetrate = Physics.ComputePenetration(
+                collider, position, transform.rotation,
+                overlap, overlap.transform.position, overlap.transform.rotation,
+                out Vector3 direction,
+                out float distance
+            );
+        
+            return didPenetrate ? 
+                position + direction * distance
+                :
+                FindNonOverlappingPosition(overlap, position);
+        }
+    
+        private Vector3 FindNonOverlappingPosition(Collider overlap, Vector3 position)
+        {
+            float searchRadius = radius;
+            int maxAttempts = 4;
+            float stepDistance = 0.01f;
+        
+            for (int i = 0; i < maxAttempts; i++)
+            {
+                foreach (Vector3 direction in Constants.Directions)
+                {
+                    Vector3 testPosition = position + direction * (i * stepDistance);
+                
+                    (Vector3 bottom, Vector3 top) = Functions.CreateCapsuleCastPoints(testPosition, radius, height);
+
+                    if (!Physics.CheckCapsule(bottom, top, searchRadius, collide))
+                    {
+                        return testPosition;
+                    }
+                }
+            }
+        
+            return position;
+        }
     
         public Vector3 Move(Vector3 position, Vector3 direction)
         {
             (Vector3 bottom, Vector3 top) = Functions.CreateCapsuleCastPoints(position, radius, height);
         
-            int hitCount = Physics.CapsuleCastNonAlloc(bottom, top, radius-Constants.COLLISION_OFFSET, direction.normalized, collisions, direction.magnitude, collide, QueryTriggerInteraction.Ignore);
-        
-            if (hitCount == 0)
-                return position + direction;
+            int hitCount = Physics.CapsuleCastNonAlloc(bottom, top, radius, direction.normalized, collisions, direction.magnitude, collide, QueryTriggerInteraction.Ignore);
 
+            if (hitCount == 0)
+            {
+                return position + direction;
+            }
+
+            Vector3 normal;
+            
             if (hitCount == 1)
             {
-                Vector3 projection = Vector3.ProjectOnPlane(direction, collisions[0].normal);
-                return position + projection;
+                normal = collisions[0].normal;
             }
-            if (hitCount == 2)
+            else if (hitCount == 2)
             {
                 Vector3 point0 = collisions[0].point;
                 Vector3 point1 = collisions[1].point;
                 
                 Vector3 plane = point0 - point1;
                 
-                Vector3 normal = Vector3.Cross(plane, Vector3.up);
-                Vector3 projection = Vector3.ProjectOnPlane(direction, normal);
-                
-                return position + projection;
+                normal = Vector3.Cross(plane, Vector3.up).normalized;
             }
             else
             {
@@ -102,11 +144,13 @@ namespace Addifex.Kinematics
                         closestHit = collisions[i];
                 }
 
-                Vector3 projection = Vector3.ProjectOnPlane(direction, closestHit.normal);
-                Vector3 newPosition = position + projection;
-        
-                return newPosition;
+                normal = closestHit.normal;
             }
+            
+            Vector3 projection = Vector3.ProjectOnPlane(direction, normal);
+            Vector3 newPosition = position + projection;
+        
+            return newPosition;
         }
     
         private bool IsGrounded(Vector3 position, out RaycastHit ground)
@@ -129,45 +173,6 @@ namespace Addifex.Kinematics
             }
         
             return count > 0;
-        }
-
-        private Vector3 ResolveOverlap(Collider overlap, Vector3 position)
-        {
-            bool didPenetrate = Physics.ComputePenetration(
-                collider, position, transform.rotation,
-                overlap, overlap.transform.position, overlap.transform.rotation,
-                out Vector3 direction,
-                out float distance
-            );
-        
-            return didPenetrate ? 
-                transform.position + direction * distance
-                :
-                FindNonOverlappingPosition(position);
-        }
-    
-        private Vector3 FindNonOverlappingPosition(Vector3 position)
-        {
-            float searchRadius = radius;
-            int maxAttempts = 4;
-            float stepDistance = 0.01f;
-        
-            for (int i = 0; i < maxAttempts; i++)
-            {
-                foreach (Vector3 direction in Constants.Directions)
-                {
-                    Vector3 testPosition = position + direction * (i * stepDistance);
-                
-                    (Vector3 bottom, Vector3 top) = Functions.CreateCapsuleCastPoints(testPosition, radius, height);
-
-                    if (!Physics.CheckCapsule(bottom, top, searchRadius, collide))
-                    {
-                        return testPosition;
-                    }
-                }
-            }
-        
-            return position;
         }
 
         private static Vector3 GetMoveInput()
