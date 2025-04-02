@@ -118,13 +118,13 @@ namespace Addifex.Kinematics
 
             ground = new()
             {
-                distance = float.PositiveInfinity,
+                distance = float.NegativeInfinity,
                 normal = Vector3.up
             };
         
             for (int i = 0; i < count; i++)
             {
-                if(collisions[i].distance < ground.distance)
+                if(collisions[i].distance > ground.distance)
                     ground = collisions[i];
             }
         
