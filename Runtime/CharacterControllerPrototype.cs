@@ -11,7 +11,9 @@ namespace Addifex.Kinematics
         private LayerMask collide;
         [SerializeField]
         private float maxSlopeAngle = 45;
-
+        [SerializeField]
+        private float skinWidth = 0.05f;
+        
         private new CapsuleCollider collider;
     
         private float radius = 0.5f;
@@ -34,8 +36,6 @@ namespace Addifex.Kinematics
 
         private void Update()
         {
-            CheckForOverlaps();
-            
             Vector3 input = GetMoveInput();
             Vector3 direction = transform.TransformDirection(input).normalized;
             Vector3 movement = direction * (speed * Time.deltaTime);
@@ -51,65 +51,12 @@ namespace Addifex.Kinematics
         
             transform.position = Move(transform.position, velocity);
         }
-        
-        private void CheckForOverlaps()
-        {
-            (Vector3 bottom, Vector3 top) = Functions.CreateCapsuleCastPoints(transform.position, radius, height);
-            int overlapCount = Physics.OverlapCapsuleNonAlloc(bottom, top, radius, overlaps, collide);
-
-            if(overlapCount > 0)
-                Debug.Log(overlapCount);
-            
-            for (int i = 0; i < overlapCount; i++)
-            {
-                transform.position = ResolveOverlap(overlaps[i], transform.position);
-            }
-        }
-        
-        private Vector3 ResolveOverlap(Collider overlap, Vector3 position)
-        {
-            bool didPenetrate = Physics.ComputePenetration(
-                collider, position, transform.rotation,
-                overlap, overlap.transform.position, overlap.transform.rotation,
-                out Vector3 direction,
-                out float distance
-            );
-        
-            return didPenetrate ? 
-                position + direction * distance
-                :
-                FindNonOverlappingPosition(position);
-        }
-    
-        private Vector3 FindNonOverlappingPosition(Vector3 position)
-        {
-            float searchRadius = radius;
-            int maxAttempts = 4;
-            float stepDistance = 0.01f;
-        
-            for (int i = 0; i < maxAttempts; i++)
-            {
-                foreach (Vector3 direction in Constants.Directions)
-                {
-                    Vector3 testPosition = position + direction * (i * stepDistance);
-                
-                    (Vector3 bottom, Vector3 top) = Functions.CreateCapsuleCastPoints(testPosition, radius, height);
-
-                    if (!Physics.CheckCapsule(bottom, top, searchRadius, collide))
-                    {
-                        return testPosition;
-                    }
-                }
-            }
-        
-            return position;
-        }
     
         public Vector3 Move(Vector3 position, Vector3 direction)
         {
             (Vector3 bottom, Vector3 top) = Functions.CreateCapsuleCastPoints(position, radius, height);
         
-            int hitCount = Physics.CapsuleCastNonAlloc(bottom, top, radius, direction.normalized, collisions, direction.magnitude, collide, QueryTriggerInteraction.Ignore);
+            int hitCount = Physics.CapsuleCastNonAlloc(bottom, top, radius - skinWidth, direction.normalized, collisions, direction.magnitude, collide, QueryTriggerInteraction.Ignore);
 
             if (hitCount == 0)
             {
