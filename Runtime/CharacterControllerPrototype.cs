@@ -78,10 +78,10 @@ namespace Addifex.Kinematics
             return didPenetrate ? 
                 position + direction * distance
                 :
-                FindNonOverlappingPosition(overlap, position);
+                FindNonOverlappingPosition(position);
         }
     
-        private Vector3 FindNonOverlappingPosition(Collider overlap, Vector3 position)
+        private Vector3 FindNonOverlappingPosition(Vector3 position)
         {
             float searchRadius = radius;
             int maxAttempts = 4;
