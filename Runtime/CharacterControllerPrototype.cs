@@ -67,7 +67,7 @@ namespace Addifex.Kinematics
         {
             (Vector3 bottom, Vector3 top) = Functions.CreateCapsuleCastPoints(position, radius, height);
         
-            int hitCount = Physics.CapsuleCastNonAlloc(bottom, top, radius, direction.normalized, collisions, direction.magnitude, collide, QueryTriggerInteraction.Ignore);
+            int hitCount = Physics.CapsuleCastNonAlloc(bottom, top, radius-Constants.COLLISION_OFFSET, direction.normalized, collisions, direction.magnitude, collide, QueryTriggerInteraction.Ignore);
         
             if (hitCount == 0)
                 return position + direction;
@@ -148,7 +148,7 @@ namespace Addifex.Kinematics
     
         private Vector3 FindNonOverlappingPosition(Vector3 position)
         {
-            float searchRadius = radius + Constants.COLLISION_OFFSET;
+            float searchRadius = radius;
             int maxAttempts = 4;
             float stepDistance = 0.01f;
         
