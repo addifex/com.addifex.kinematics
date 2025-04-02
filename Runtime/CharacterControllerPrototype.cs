@@ -1,3 +1,4 @@
+using Unity.Plastic.Antlr3.Runtime.Misc;
 using UnityEngine;
 
 namespace Addifex.Kinematics
@@ -24,8 +25,6 @@ namespace Addifex.Kinematics
         private static RaycastHit[] collisions = new RaycastHit[8];
         private static Collider[] overlaps = new Collider[8];
 
-        private const float MAX_STEP_HEIGHT = .25f;
-
         private void Awake()
         {
             collider = GetComponent<CapsuleCollider>();
@@ -33,66 +32,77 @@ namespace Addifex.Kinematics
             radius = collider.radius;
             height = collider.height;
         }
+        
+        public float CastRadius() => radius - skinWidth;
 
         private void Update()
         {
             Vector3 input = GetMoveInput();
-            Vector3 direction = transform.TransformDirection(input).normalized;
-            Vector3 movement = direction * (speed * Time.deltaTime);
+            Vector3 inputDirection = transform.TransformDirection(input).normalized;
+
+            velocity = inputDirection;
+            
+            if (CheckOverlaps(out Vector3 depenetration))
+            {
+                velocity += depenetration.normalized;
+            }
+
+            velocity *= speed * Time.deltaTime;
         
             bool foundGround = IsGrounded(transform.position, out RaycastHit groundHit);
         
             float angle = Vector3.Angle(Vector3.up, groundHit.normal);
-        
-            if(foundGround && angle <= maxSlopeAngle)
-                velocity = Vector3.ProjectOnPlane(movement, groundHit.normal);
+
+            if (foundGround)
+            {
+                if(angle <= maxSlopeAngle)
+                    velocity = Vector3.ProjectOnPlane(velocity, groundHit.normal);
+            }
             else
-                velocity = movement + Physics.gravity * Time.deltaTime;
-        
+            {
+                velocity += Physics.gravity * Time.deltaTime;
+            }
+            
             transform.position = Move(transform.position, velocity);
+        }
+
+        public bool CheckOverlaps(out Vector3 outDirection)
+        {
+            (Vector3 bottom, Vector3 top) = Functions.CreateCapsuleCastPoints(transform.position, radius, height);
+            int count = Physics.OverlapCapsuleNonAlloc(bottom, top, radius, overlaps, collide);
+
+            outDirection = Vector3.zero;
+            for (int i = 0; i < count; i++)
+            {
+                Collider overlapCollider = overlaps[i];
+                
+                Physics.ComputePenetration(
+                    collider, transform.position, transform.rotation,
+                    overlapCollider, overlapCollider.transform.position, overlapCollider.transform.rotation,
+                    out Vector3 direction, out float distance
+                );
+                
+                outDirection += direction.normalized * distance;
+            }
+
+            return count > 0;
         }
     
         public Vector3 Move(Vector3 position, Vector3 direction)
         {
-            (Vector3 bottom, Vector3 top) = Functions.CreateCapsuleCastPoints(position, radius, height);
+            (Vector3 bottom, Vector3 top) = Functions.CreateCapsuleCastPoints(position, CastRadius(), height);
         
-            int hitCount = Physics.CapsuleCastNonAlloc(bottom, top, radius - skinWidth, direction.normalized, collisions, direction.magnitude, collide, QueryTriggerInteraction.Ignore);
-
-            if (hitCount == 0)
-            {
-                return position + direction;
-            }
-
-            Vector3 normal;
+            int hitCount = Physics.CapsuleCastNonAlloc(bottom, top, CastRadius(), direction.normalized, collisions, direction.magnitude, collide, QueryTriggerInteraction.Ignore);
             
-            if (hitCount == 1)
-            {
-                normal = collisions[0].normal;
-            }
-            else if (hitCount == 2)
-            {
-                Vector3 point0 = collisions[0].point;
-                Vector3 point1 = collisions[1].point;
-                
-                Vector3 plane = point0 - point1;
-                
-                normal = Vector3.Cross(plane, Vector3.up).normalized;
-            }
-            else
-            {
-                RaycastHit closestHit = new()
-                {
-                    distance = float.PositiveInfinity,
-                };
-        
-                for (int i = 0; i < hitCount; i++)
-                {
-                    if(collisions[i].distance < closestHit.distance)
-                        closestHit = collisions[i];
-                }
+            Vector3 normal = Vector3.zero;
 
-                normal = closestHit.normal;
+            for (int i = 0; i < hitCount; i++)
+            {
+                if(!Functions.IsOverlapping(collisions[i]))
+                    normal += collisions[i].normal;
             }
+            
+            normal.Normalize();
             
             Vector3 projection = Vector3.ProjectOnPlane(direction, normal);
             Vector3 newPosition = position + projection;
@@ -102,10 +112,10 @@ namespace Addifex.Kinematics
     
         private bool IsGrounded(Vector3 position, out RaycastHit ground)
         {
-            Vector3 castOrigin = position + new Vector3(0, radius);
-            float distance = Constants.GROUND_CHECK;
+            Vector3 castOrigin = position + new Vector3(0, CastRadius());
+            float distance = skinWidth;
 
-            int count = Physics.SphereCastNonAlloc(castOrigin, radius, Vector3.down, collisions, distance, collide, QueryTriggerInteraction.Ignore);
+            int count = Physics.SphereCastNonAlloc(castOrigin, CastRadius(), Vector3.down, collisions, distance, collide, QueryTriggerInteraction.Ignore);
 
             ground = new()
             {
