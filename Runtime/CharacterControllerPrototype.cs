@@ -160,7 +160,7 @@ namespace Addifex.Kinematics
                 
                     (Vector3 bottom, Vector3 top) = Functions.CreateCapsuleCastPoints(testPosition, radius, height);
 
-                    if (Physics.OverlapCapsuleNonAlloc(bottom, top, searchRadius, overlaps, collide) == 0)
+                    if (!Physics.CheckCapsule(bottom, top, searchRadius, collide))
                     {
                         return testPosition;
                     }
