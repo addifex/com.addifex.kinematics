@@ -34,22 +34,27 @@ namespace Addifex.Kinematics
 
         private void Start()
         {
-            CheckForOverlaps();
+            transform.position = CheckForOverlaps();
         }
 
-        private void CheckForOverlaps()
+        private Vector3 CheckForOverlaps()
         {
             (Vector3 bottom, Vector3 top) = Functions.CreateCapsuleCastPoints(transform.position, radius, height);
             int overlapCount = Physics.OverlapCapsuleNonAlloc(bottom, top, radius, overlaps, collide);
-
+            
+            Vector3 nextPos = transform.position;
             for (int i = 0; i < overlapCount; i++)
             {
-                transform.position = ResolveOverlap(overlaps[i], transform.position);
+                nextPos = ResolveOverlap(overlaps[i], nextPos);
             }
+            
+            return nextPos;
         }
 
         private void Update()
         {
+            transform.position = CheckForOverlaps();
+            
             Vector3 input = GetMoveInput();
             Vector3 direction = transform.TransformDirection(input).normalized;
             Vector3 movement = direction * (speed * Time.deltaTime);
@@ -62,15 +67,20 @@ namespace Addifex.Kinematics
                 velocity = Vector3.ProjectOnPlane(movement, groundHit.normal);
             else
                 velocity = movement + Physics.gravity * Time.deltaTime;
-        
-            transform.position = Move(transform.position, velocity);
+
+            Vector3 nextPosition = Move(transform.position, movement);
+            transform.position = nextPosition;
         }
     
         public Vector3 Move(Vector3 position, Vector3 direction)
         {
             (Vector3 bottom, Vector3 top) = Functions.CreateCapsuleCastPoints(position, radius, height);
-        
-            int hitCount = Physics.CapsuleCastNonAlloc(bottom, top, radius, direction.normalized, collisions, direction.magnitude, collide, QueryTriggerInteraction.Ignore);
+
+            Vector3 directionNormal = direction.normalized;
+            // this helps prevent minor overlaps that aren't detected by Physics.ComputePenetration
+            float castRadius = radius - Constants.COLLISION_OFFSET;
+            
+            int hitCount = Physics.CapsuleCastNonAlloc(bottom, top, castRadius, directionNormal, collisions, direction.magnitude, collide, QueryTriggerInteraction.Ignore);
         
             if (hitCount == 0)
                 return position + direction;
@@ -85,9 +95,6 @@ namespace Addifex.Kinematics
                 if(collisions[i].distance < closestHit.distance)
                     closestHit = collisions[i];
             }
-        
-            if(closestHit.distance == 0 && closestHit.point == Vector3.zero)
-                return ResolveOverlap(closestHit.collider, position + direction);
 
             Vector3 projection = Vector3.ProjectOnPlane(direction, closestHit.normal);
             Vector3 newPosition = position + projection;
