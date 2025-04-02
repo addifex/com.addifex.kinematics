@@ -16,5 +16,10 @@ namespace Addifex.Kinematics
         {
             return hit.point.y - position.y;
         }
+
+        public static bool IsOverlapping(RaycastHit hit)
+        {
+            return hit.distance == 0 && hit.point == Vector3.zero;
+        }
     }
 }
