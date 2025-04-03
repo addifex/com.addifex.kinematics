@@ -104,7 +104,7 @@ namespace Addifex.Kinematics
 
         private bool CheckStep(Vector3 position, Vector3 direction, out Vector3 stepDirection)
         {
-            Vector3 castOrigin = position + direction + new Vector3(0, radius);
+            Vector3 castOrigin = position + new Vector3(0, radius);
             float distance = direction.magnitude;
             
             int count = Physics.SphereCastNonAlloc(castOrigin, radius, direction.normalized, collisions, distance, collide, QueryTriggerInteraction.Ignore);
