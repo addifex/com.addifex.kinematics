@@ -132,8 +132,10 @@ namespace Addifex.Kinematics
         
             for (int i = 0; i < count; i++)
             {
-                if(!Functions.IsOverlapping(collisions[i]))
-                    normal += collisions[i].normal;
+                if (Functions.IsOverlapping(collisions[i]))
+                    continue;
+                
+                normal += collisions[i].normal;
             }
             
             normal.Normalize();
