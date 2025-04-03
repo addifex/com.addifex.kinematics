@@ -1,3 +1,5 @@
 # IDE caches
 .idea/
 .vs/
+
+.DS_Store
