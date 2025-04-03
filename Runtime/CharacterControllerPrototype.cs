@@ -42,28 +42,23 @@ namespace Addifex.Kinematics
         {
             Vector3 input = GetMoveInput();
             Vector3 inputDirection = transform.TransformDirection(input).normalized;
-
+            
             velocity = inputDirection * SpeedVector();
-        
-            // check for ground first because we want to keep the players input as a projection
-            // on ground before we check to see if they are overlapping with something
+            
             bool foundGround = IsGrounded(transform.position, out Vector3 groundNormal);
             velocity = Vector3.ProjectOnPlane(velocity, groundNormal);
-
+            
             if (foundGround && CheckStep(transform.position, velocity, out Vector3 stepDirection))
-            {
-                velocity += stepDirection.normalized * SpeedVector();
-            }
-
+                velocity = Vector3.Project(velocity, stepDirection.normalized);
+            
             if(CheckMove(transform.position, velocity, out Vector3 hitNormal))
                 velocity = Vector3.ProjectOnPlane(velocity, hitNormal);
             
             float angle = Vector3.Angle(Vector3.up, velocity);
             if(!foundGround || angle > maxSlopeAngle)
-            {
                 velocity += Physics.gravity * Time.deltaTime;
-            }
             
+            // apply this last so depenetration vector takes precedence 
             if (CheckOverlaps(out Vector3 depenetration))
             {
                 // if player isn't moving use the depenetration vector for movement
@@ -76,31 +71,14 @@ namespace Addifex.Kinematics
             Vector3 newPosition = transform.position + velocity;
             transform.position = newPosition;
         }
-
-        public bool CheckOverlaps(out Vector3 outDirection)
-        {
-            (Vector3 bottom, Vector3 top) = Functions.CreateCapsuleCastPoints(transform.position, radius, height);
-            int count = Physics.OverlapCapsuleNonAlloc(bottom, top, radius, overlaps, collide);
-
-            outDirection = Vector3.zero;
-            for (int i = 0; i < count; i++)
-            {
-                Collider overlapCollider = overlaps[i];
-                
-                Physics.ComputePenetration(
-                    collider, transform.position, transform.rotation,
-                    overlapCollider, overlapCollider.transform.position, overlapCollider.transform.rotation,
-                    out Vector3 direction, out float distance
-                );
-                
-                outDirection += direction.normalized * distance;
-            }
-
-            return count > 0;
-        }
-
-        // IsGround is used for checking if there is ground beneath the player
-        // as well as returning the normal of the ground beneath (if any)
+        
+        /// <summary>
+        /// IsGround is used for checking if there is ground beneath the player
+        /// as well as returning the normal of the ground beneath (if any)
+        /// </summary>
+        /// <param name="position"></param>
+        /// <param name="normal"></param>
+        /// <returns></returns>
         private bool IsGrounded(Vector3 position, out Vector3 normal)
         {
             Vector3 castOrigin = position + new Vector3(0, CastRadius());
@@ -125,7 +103,7 @@ namespace Addifex.Kinematics
 
         private bool CheckStep(Vector3 position, Vector3 direction, out Vector3 stepDirection)
         {
-            Vector3 castOrigin = position + direction + new Vector3(0, radius - skinWidth + stepHeight);
+            Vector3 castOrigin = position + direction + new Vector3(0, radius + stepHeight);
             float distance = radius;
             
             int count = Physics.SphereCastNonAlloc(castOrigin, radius, Vector3.down, collisions, distance, collide, QueryTriggerInteraction.Ignore);
@@ -146,6 +124,28 @@ namespace Addifex.Kinematics
             }
             
             return foundStep;
+        }
+
+        public bool CheckOverlaps(out Vector3 outDirection)
+        {
+            (Vector3 bottom, Vector3 top) = Functions.CreateCapsuleCastPoints(transform.position, radius, height);
+            int count = Physics.OverlapCapsuleNonAlloc(bottom, top, radius, overlaps, collide);
+
+            outDirection = Vector3.zero;
+            for (int i = 0; i < count; i++)
+            {
+                Collider overlapCollider = overlaps[i];
+                
+                Physics.ComputePenetration(
+                    collider, transform.position, transform.rotation,
+                    overlapCollider, overlapCollider.transform.position, overlapCollider.transform.rotation,
+                    out Vector3 direction, out float distance
+                );
+                
+                outDirection += direction.normalized * distance;
+            }
+
+            return count > 0;
         }
 
         public bool CheckMove(Vector3 position, Vector3 direction, out Vector3 normal)
