@@ -14,6 +14,8 @@ namespace Addifex.Kinematics
         private float maxSlopeAngle = 45;
         [SerializeField]
         private float skinWidth = 0.05f;
+        [SerializeField]
+        private float stepHeight = 0.25f;
         
         private new CapsuleCollider collider;
     
