@@ -43,12 +43,12 @@ namespace Addifex.Kinematics
             Vector3 input = GetMoveInput();
             Vector3 inputDirection = transform.TransformDirection(input).normalized;
 
-            Vector3 movement = inputDirection * SpeedVector();
+            velocity = inputDirection * SpeedVector();
         
             // check for ground first because we want to keep the players input as a projection
             // on ground before we check to see if they are overlapping with something
             bool foundGround = IsGrounded(transform.position, out Vector3 groundNormal);
-            velocity = Vector3.ProjectOnPlane(movement, groundNormal);
+            velocity = Vector3.ProjectOnPlane(velocity, groundNormal);
 
             if (foundGround && CheckStep(transform.position, velocity, out Vector3 stepDirection))
             {
