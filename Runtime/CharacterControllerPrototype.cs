@@ -50,6 +50,20 @@ namespace Addifex.Kinematics
             // on ground before we check to see if they are overlapping with something
             bool foundGround = IsGrounded(transform.position, out Vector3 groundNormal);
             velocity = Vector3.ProjectOnPlane(movement, groundNormal);
+
+            if (foundGround && CheckStep(transform.position, velocity, out Vector3 stepDirection))
+            {
+                velocity += stepDirection.normalized * SpeedVector();
+            }
+
+            if(CheckMove(transform.position, velocity, out Vector3 hitNormal))
+                velocity = Vector3.ProjectOnPlane(velocity, hitNormal);
+            
+            float angle = Vector3.Angle(Vector3.up, velocity);
+            if(!foundGround || angle > maxSlopeAngle)
+            {
+                velocity += Physics.gravity * Time.deltaTime;
+            }
             
             if (CheckOverlaps(out Vector3 depenetration))
             {
@@ -60,18 +74,8 @@ namespace Addifex.Kinematics
                     velocity = Vector3.ProjectOnPlane(velocity, depenetration.normalized);
             }
             
-            float angle = Vector3.Angle(Vector3.up, groundNormal);
-            if(!foundGround || angle > maxSlopeAngle)
-            {
-                velocity += Physics.gravity * Time.deltaTime;
-            }
-
-            if (foundGround && CheckStep(transform.position, velocity, out Vector3 stepDirection))
-            {
-                //velocity += stepDirection.normalized * SpeedVector();
-            }
-            
-            transform.position = Move(transform.position, velocity);
+            Vector3 newPosition = transform.position + velocity;
+            transform.position = newPosition;
         }
 
         public bool CheckOverlaps(out Vector3 outDirection)
@@ -95,29 +99,7 @@ namespace Addifex.Kinematics
 
             return count > 0;
         }
-    
-        public Vector3 Move(Vector3 position, Vector3 direction)
-        {
-            (Vector3 bottom, Vector3 top) = Functions.CreateCapsuleCastPoints(position, CastRadius(), height);
-        
-            int hitCount = Physics.CapsuleCastNonAlloc(bottom, top, CastRadius(), direction.normalized, collisions, direction.magnitude, collide, QueryTriggerInteraction.Ignore);
-            
-            Vector3 normal = Vector3.zero;
 
-            for (int i = 0; i < hitCount; i++)
-            {
-                if(!Functions.IsOverlapping(collisions[i]))
-                    normal += collisions[i].normal;
-            }
-            
-            normal.Normalize();
-            
-            Vector3 projection = Vector3.ProjectOnPlane(direction, normal);
-            Vector3 newPosition = position + projection;
-        
-            return newPosition;
-        }
-    
         // IsGround is used for checking if there is ground beneath the player
         // as well as returning the normal of the ground beneath (if any)
         // TODO: Test if filtering ground collisions by only collisions lower than skin width helps jitter
@@ -166,6 +148,25 @@ namespace Addifex.Kinematics
             }
             
             return foundStep;
+        }
+
+        public bool CheckMove(Vector3 position, Vector3 direction, out Vector3 normal)
+        {
+            (Vector3 bottom, Vector3 top) = Functions.CreateCapsuleCastPoints(position, CastRadius(), height);
+        
+            int hitCount = Physics.CapsuleCastNonAlloc(bottom, top, CastRadius(), direction.normalized, collisions, direction.magnitude, collide, QueryTriggerInteraction.Ignore);
+            
+            normal = Vector3.zero;
+
+            for (int i = 0; i < hitCount; i++)
+            {
+                if(!Functions.IsOverlapping(collisions[i]))
+                    normal += collisions[i].normal;
+            }
+            
+            normal.Normalize();
+
+            return hitCount > 0;
         }
 
         private static Vector3 GetMoveInput()
