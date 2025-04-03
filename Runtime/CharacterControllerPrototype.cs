@@ -102,7 +102,6 @@ namespace Addifex.Kinematics
 
         // IsGround is used for checking if there is ground beneath the player
         // as well as returning the normal of the ground beneath (if any)
-        // TODO: Test if filtering ground collisions by only collisions lower than skin width helps jitter
         private bool IsGrounded(Vector3 position, out Vector3 normal)
         {
             Vector3 castOrigin = position + new Vector3(0, CastRadius());
