@@ -46,12 +46,16 @@ namespace Addifex.Kinematics
 
             Vector3 movement = inputDirection * SpeedVector();
         
+            // check for ground first because we want to keep the players input as a projection
+            // on ground before we check to see if they are overlapping with something
             bool foundGround = IsGrounded(transform.position, out Vector3 groundNormal);
             velocity = Vector3.ProjectOnPlane(movement, groundNormal);
             
             if (CheckOverlaps(out Vector3 depenetration))
             {
+                // if player isn't moving use the depenetration vector for movement
                 velocity = velocity == Vector3.zero ? depenetration * SpeedVector() : velocity;
+                // if the player is not moving away from the overlap, project their input into the depenetration vector
                 if (Vector3.Dot(velocity, depenetration) <= 0)
                     velocity = Vector3.ProjectOnPlane(velocity, depenetration.normalized);
             }
