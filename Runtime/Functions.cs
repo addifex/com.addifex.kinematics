@@ -21,5 +21,10 @@ namespace Addifex.Kinematics
         {
             return hit.distance == 0 && hit.point == Vector3.zero;
         }
+
+        public static Vector3 Average(Vector3 a, Vector3 b)
+        {
+            return (a + b) / 2f;
+        }
     }
 }

@@ -34,24 +34,25 @@ namespace Addifex.Kinematics
         }
         
         public float CastRadius() => radius - skinWidth;
+        
+        private float SpeedVector() => speed * Time.deltaTime;
 
         private void Update()
         {
             Vector3 input = GetMoveInput();
             Vector3 inputDirection = transform.TransformDirection(input).normalized;
 
-            velocity = inputDirection;
+            Vector3 movement = inputDirection * SpeedVector();
+        
+            bool foundGround = IsGrounded(transform.position, out Vector3 groundNormal);
+            velocity = Vector3.ProjectOnPlane(movement, groundNormal);
             
             if (CheckOverlaps(out Vector3 depenetration))
             {
-                velocity += depenetration.normalized;
+                velocity = velocity == Vector3.zero ? depenetration * SpeedVector() : velocity;
+                if (Vector3.Dot(velocity, depenetration) <= 0)
+                    velocity = Vector3.ProjectOnPlane(velocity, depenetration.normalized);
             }
-        
-            bool foundGround = IsGrounded(transform.position, out Vector3 groundNormal);
-            
-            velocity += Vector3.ProjectOnPlane(inputDirection, groundNormal);
-            
-            velocity = Vector3.ClampMagnitude(velocity, speed * Time.deltaTime);
             
             float angle = Vector3.Angle(Vector3.up, groundNormal);
             if(!foundGround || angle > maxSlopeAngle)
