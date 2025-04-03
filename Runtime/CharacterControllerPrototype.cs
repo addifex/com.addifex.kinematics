@@ -59,7 +59,8 @@ namespace Addifex.Kinematics
             if (CheckOverlaps(out Vector3 depenetration))
             {
                 // if player isn't moving use the depenetration vector for movement
-                velocity = velocity == Vector3.zero ? depenetration * SpeedVector() : velocity;
+                if(velocity.sqrMagnitude == 0)
+                    velocity = depenetration * SpeedVector();
                 // if the player is not moving away from the overlap, project their input into the depenetration vector
                 if (Vector3.Dot(velocity, depenetration) <= 0)
                     velocity = Vector3.ProjectOnPlane(velocity, depenetration.normalized);
