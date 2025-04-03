@@ -65,6 +65,11 @@ namespace Addifex.Kinematics
             {
                 velocity += Physics.gravity * Time.deltaTime;
             }
+
+            if (foundGround && CheckStep(transform.position, velocity, out Vector3 stepDirection))
+            {
+                //velocity += stepDirection.normalized * SpeedVector();
+            }
             
             transform.position = Move(transform.position, velocity);
         }
@@ -113,6 +118,9 @@ namespace Addifex.Kinematics
             return newPosition;
         }
     
+        // IsGround is used for checking if there is ground beneath the player
+        // as well as returning the normal of the ground beneath (if any)
+        // TODO: Test if filtering ground collisions by only collisions lower than skin width helps jitter
         private bool IsGrounded(Vector3 position, out Vector3 normal)
         {
             Vector3 castOrigin = position + new Vector3(0, CastRadius());
@@ -131,6 +139,31 @@ namespace Addifex.Kinematics
             normal.Normalize();
         
             return count > 0;
+        }
+
+        private bool CheckStep(Vector3 position, Vector3 direction, out Vector3 stepDirection)
+        {
+            Vector3 castOrigin = position + direction + new Vector3(0, radius - skinWidth + stepHeight);
+            float distance = radius;
+            
+            int count = Physics.SphereCastNonAlloc(castOrigin, radius, Vector3.down, collisions, distance, collide, QueryTriggerInteraction.Ignore);
+
+            stepDirection = position;
+            bool foundStep = false;
+            for (int i = 0; i < count; i++)
+            {
+                if (Functions.IsOverlapping(collisions[i]))
+                    continue;
+                
+                float collisionHeight = Functions.GetStepHeight(position, collisions[i]);
+                if(collisionHeight > skinWidth && collisionHeight < stepHeight)
+                {
+                    stepDirection = collisions[i].point - position;
+                    foundStep = true;
+                }
+            }
+            
+            return foundStep;
         }
 
         private static Vector3 GetMoveInput()
