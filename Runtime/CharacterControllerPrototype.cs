@@ -49,10 +49,7 @@ namespace Addifex.Kinematics
             velocity = Vector3.ProjectOnPlane(velocity, groundNormal);
             
             if (foundGround && CheckStep(transform.position, velocity, out Vector3 stepDirection))
-                velocity = Vector3.Project(velocity, stepDirection.normalized);
-            
-            if(CheckMove(transform.position, velocity, out Vector3 hitNormal))
-                velocity = Vector3.ProjectOnPlane(velocity, hitNormal);
+                velocity = Vector3.ProjectOnPlane(velocity, stepDirection.normalized);
             
             float angle = Vector3.Angle(Vector3.up, velocity);
             if(!foundGround || angle > maxSlopeAngle)
@@ -67,6 +64,9 @@ namespace Addifex.Kinematics
                 if (Vector3.Dot(velocity, depenetration) <= 0)
                     velocity = Vector3.ProjectOnPlane(velocity, depenetration.normalized);
             }
+            
+            if(CheckMove(transform.position, velocity, out Vector3 hitNormal))
+                velocity = Vector3.ProjectOnPlane(velocity, hitNormal);
             
             Vector3 newPosition = transform.position + velocity;
             transform.position = newPosition;
@@ -103,19 +103,21 @@ namespace Addifex.Kinematics
 
         private bool CheckStep(Vector3 position, Vector3 direction, out Vector3 stepDirection)
         {
-            Vector3 castOrigin = position + direction + new Vector3(0, radius + stepHeight);
-            float distance = radius;
+            Vector3 castOrigin = position + direction + new Vector3(0, radius);
+            float distance = direction.magnitude;
             
-            int count = Physics.SphereCastNonAlloc(castOrigin, radius, Vector3.down, collisions, distance, collide, QueryTriggerInteraction.Ignore);
+            int count = Physics.SphereCastNonAlloc(castOrigin, radius, direction.normalized, collisions, distance, collide, QueryTriggerInteraction.Ignore);
 
-            stepDirection = position;
+            Vector3 positionCheck = position + new Vector3(0, skinWidth); 
+            stepDirection = direction;
             bool foundStep = false;
             for (int i = 0; i < count; i++)
             {
-                if (Functions.IsOverlapping(collisions[i]))
+                bool isOverlapping = Functions.IsOverlapping(collisions[i]);
+                if (isOverlapping)
                     continue;
                 
-                float collisionHeight = Functions.GetStepHeight(position, collisions[i]);
+                float collisionHeight = Functions.GetStepHeight(positionCheck, collisions[i]);
                 if(collisionHeight > skinWidth && collisionHeight < stepHeight)
                 {
                     stepDirection = collisions[i].point - position;
